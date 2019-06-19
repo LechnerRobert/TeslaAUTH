@@ -1,11 +1,11 @@
 unit FMain;
 
-{$MODE Delphi}
+{$mode objfpc}{$H+}
 
 interface
 
 uses
-  Forms, SysUtils, Dialogs,
+  Forms, SysUtils, Dialogs, Graphics,
   UWebBrowserWrapper2, StdCtrls, Grids, ExtCtrls, Spin, activexcontainer,
   Classes, IdHTTP, IdSSLOpenSSL, IdGlobal, jsonparser, fpjson;
 type
@@ -19,8 +19,6 @@ type
     edOAuthResult: TMemo;
     edToken: TEdit;
     edVehicle: TEdit;
-    IdHTTP: TIdHTTP;
-    IdSSLIOHandlerSocketOpenSSL1: TIdSSLIOHandlerSocketOpenSSL;
     lbCarInfo: TLabel;
     lbCarState: TLabel;
     Page1: TPage;
@@ -38,10 +36,10 @@ type
     nbWake: TButton;
     edChargeLimit: TSpinEdit;
     nbSetChargeLimit: TButton;
+    procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure nbOAuthClick(Sender: TObject);
     procedure nbWakeClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure tiCheckCarStateTimer(Sender: TObject);
     procedure nbCarDataClick(Sender: TObject);
     procedure nbSetChargeLimitClick(Sender: TObject);
@@ -51,6 +49,8 @@ type
     CarStateCountDown: Integer;
     web: TWebBrowserWrapper;
     fs: TFormatSettings;
+    idHTTP: TIdHTTP;
+    IdSSL: TIdSSLIOHandlerSocketOpenSSL;
     function FormatFloat2(fmt: String; inp: Double): String;
     procedure ResetHTTPRequest;
     function REST_OAuth(out token: String; out info: String): Boolean;
@@ -67,6 +67,7 @@ type
     procedure SaveToken;
     procedure SetCarState(const Value: String);
     procedure WebNavigatTo(lon, lat: Double);
+    procedure CreateIdHTTP;
     { Private-Deklarationen }
   public
     { Public-Deklarationen }
@@ -146,7 +147,7 @@ begin
     url := BASE_URL + 'oauth/token';
     try
       res := idHttp.Post(url, ss);
-      result := True;
+      result := (idHttp.Response.ResponseCode div 100) = 2;
     except
     end;
     info := idHttp.Response.ResponseText + CRLF + res;
@@ -154,6 +155,7 @@ begin
       jsd := GetJSON(res);
       token := ( jsd.FindPath('access_token').AsString);
       info := jsd.FormatJSON();
+      CreateIdHTTP;            //workaround
     end;
   finally
     jsd.Free;
@@ -187,7 +189,7 @@ begin
     url := BASE_URL + 'api/1/vehicles/' + edVehicle.Text + '/command/set_charge_limit';
     try
       res := idHttp.Post(url, ss);
-      result := True;
+      result := (idHttp.Response.ResponseCode div 100) = 2;
     except
     end;
     info := idHttp.Response.ResponseText + CRLF + res;
@@ -210,7 +212,6 @@ begin
   idHttp.Request.Clear;
   idHttp.Request.ContentType := 'application/json';
   idHttp.Request.BasicAuthentication := true;
-  idHttp.Request.UserAgent   := 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.96 Safari/537.36';
   idHttp.Request.AcceptEncoding := '';
   idHttp.Request.Accept := 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8';
   //idHttp.Request.AcceptLanguage := 'pt-BR,pt;q=0.8,en-US;q=0.6,en;q=0.4';
@@ -265,7 +266,7 @@ begin
     url := BASE_URL + 'api/1/vehicles/' + edVehicle.Text + '/wake_up';
     try
       res := idHttp.Post(url, ss);
-      result := True;
+      result := (idHttp.Response.ResponseCode div 100) = 2;
     except
     end;
     info := idHttp.Response.ResponseText + CRLF + res;
@@ -397,7 +398,7 @@ begin
     url := BASE_URL + 'api/1/vehicles';
     try
       res := idHttp.Get(url);
-      result := True;
+      result := (idHttp.Response.ResponseCode div 100) = 2;
     except
 
     end;
@@ -436,7 +437,7 @@ begin
     url := BASE_URL + 'api/1/vehicles/' + edVehicle.Text + '/data';
     try
       res := idHttp.Get(url);
-      result := True;
+      result := (idHttp.Response.ResponseCode div 100) = 2;
     except
 
     end;
@@ -459,6 +460,7 @@ var
   state, vehicle, info: String;
 begin
   if REST_UpdateCarState(state, vehicle, info) then begin
+    nxButtons.PageIndex := 1;
     CarState := state;
     edVehicle.Text := vehicle;
     if fillInfo then begin
@@ -469,18 +471,17 @@ begin
     edOAuthResult.Text := info;
   end;
   lbCarState.Caption := CarState;
+  lbCarState.Font.Style:= [fsBold];
 end;
 
-procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
-begin
-  SaveToken;
-end;
 
 
 procedure TForm1.FormCreate(Sender: TObject);
 var
   ini: TMemIniFile;
 begin
+  CreateIdHTTP;
+
   fs := DefaultFormatSettings;
   fs.DecimalSeparator:= '.';
   web := TWebBrowserWrapper.Create(ActiveXContainer1);
@@ -511,14 +512,21 @@ begin
   if edToken.Text = '' then begin
     if REST_OAuth(token, info) then begin
       edToken.Text := token;
+      Application.ProcessMessages;
       SaveToken;
     end;
     edOAuthResult.Text := info;
   end;
   UpdateCarState(True);
 
-  nxButtons.PageIndex := 1;
   tiCheckCarState.Enabled := True;
+end;
+
+procedure TForm1.FormClose(Sender: TObject; var CloseAction: TCloseAction);
+begin
+  if CloseAction = caFree then begin
+    SaveToken;
+  end;
 end;
 
 procedure TForm1.nbNavTestClick(Sender: TObject);
@@ -533,6 +541,18 @@ begin
   tmp := ReplaceStr(webPage, '%lon%', FormatFloat2('#0.0000000', lon));
   tmp := ReplaceStr(tmp, '%lat%', FormatFloat2('#0.0000000', lat));
   web.LoadFromString(tmp);
+end;
+
+procedure TForm1.CreateIdHTTP;
+begin
+  FreeAndNil(IdSSL);
+  FreeAndNil(idHTTP);
+
+  idHTTP := TIdHTTP.Create(self);
+  idHTTP.HTTPOptions := [hoNoProtocolErrorException];
+  IdSSL := TIdSSLIOHandlerSocketOpenSSL.Create(self);
+  IdSSL.SSLOptions.SSLVersions := [sslvSSLv23];
+  idHTTP.IOHandler := IdSSL;
 end;
 
 procedure TForm1.nbSetChargeLimitClick(Sender: TObject);

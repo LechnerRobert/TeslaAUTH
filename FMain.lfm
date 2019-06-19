@@ -1,9 +1,9 @@
 object Form1: TForm1
-  Left = 446
+  Left = 438
   Height = 599
-  Top = 170
+  Top = 194
   Width = 912
-  Caption = 'Form1'
+  Caption = 'TeslaAUTH'
   ClientHeight = 599
   ClientWidth = 912
   Color = clBtnFace
@@ -27,7 +27,11 @@ object Form1: TForm1
     Top = 76
     Width = 55
     Caption = '*unknown*'
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
     ParentColor = False
+    ParentFont = False
   end
   object lbCntDown: TLabel
     Left = 136
@@ -46,7 +50,7 @@ object Form1: TForm1
       'edOAuthResult'
     )
     ScrollBars = ssBoth
-    TabOrder = 0
+    TabOrder = 4
   end
   object edToken: TEdit
     Left = 8
@@ -71,7 +75,7 @@ object Form1: TForm1
     Width = 320
     ColCount = 4
     RowCount = 4
-    TabOrder = 3
+    TabOrder = 6
     TitleFont.Color = clWindowText
     TitleFont.Height = -11
     TitleFont.Name = 'Tahoma'
@@ -82,7 +86,7 @@ object Form1: TForm1
     Top = 2
     Width = 630
     PageIndex = 0
-    TabOrder = 4
+    TabOrder = 0
     object Page1: TPage
       object Label1: TLabel
         Left = 96
@@ -183,7 +187,7 @@ object Form1: TForm1
     Width = 75
     Caption = 'nbNavTest'
     OnClick = nbNavTestClick
-    TabOrder = 6
+    TabOrder = 3
     Visible = False
   end
   object lbDegrad: TLabel
@@ -198,39 +202,6 @@ object Form1: TForm1
     Enabled = False
     OnTimer = tiCheckCarStateTimer
     left = 656
-    top = 8
-  end
-  object IdHTTP: TIdHTTP
-    IOHandler = IdSSLIOHandlerSocketOpenSSL1
-    AllowCookies = True
-    ProxyParams.BasicAuthentication = False
-    ProxyParams.ProxyPort = 0
-    Request.ContentLength = -1
-    Request.ContentRangeEnd = -1
-    Request.ContentRangeStart = -1
-    Request.ContentRangeInstanceLength = -1
-    Request.Date = 0
-    Request.Expires = 0
-    Request.LastModified = 0
-    Request.Accept = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-    Request.BasicAuthentication = False
-    Request.UserAgent = 'Mozilla/3.0 (compatible; Indy Library)'
-    Request.Ranges.Units = 'bytes'
-    Request.Ranges = <>
-    HTTPOptions = [hoForceEncodeParams]
-    left = 728
-    top = 8
-  end
-  object IdSSLIOHandlerSocketOpenSSL1: TIdSSLIOHandlerSocketOpenSSL
-    MaxLineAction = maException
-    Port = 0
-    DefaultPort = 0
-    SSLOptions.Method = sslvSSLv23
-    SSLOptions.SSLVersions = [sslvSSLv2, sslvSSLv3, sslvTLSv1, sslvTLSv1_1, sslvTLSv1_2]
-    SSLOptions.Mode = sslmUnassigned
-    SSLOptions.VerifyMode = []
-    SSLOptions.VerifyDepth = 0
-    left = 792
     top = 8
   end
 end
